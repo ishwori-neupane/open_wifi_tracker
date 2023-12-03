@@ -1,0 +1,104 @@
+import 'package:flutter/material.dart';
+import 'package:connectivity/connectivity.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:wifi_flutter/wifi_flutter.dart';
+
+class WifiGpsTracker extends StatefulWidget {
+  @override
+  _WifiGpsTrackerState createState() => _WifiGpsTrackerState();
+}
+
+class _WifiGpsTrackerState extends State<WifiGpsTracker> {
+  ConnectivityResult _wifiStatus = ConnectivityResult.none;
+  Position? _currentPosition;
+  List<WifiNetwork> _wifiNetworks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    checkWifiStatus();
+    getCurrentLocation();
+    scanWifiNetworks();
+  }
+
+  Future<void> checkWifiStatus() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _wifiStatus = connectivityResult;
+    });
+  }
+
+  Future<void> getCurrentLocation() async {
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    setState(() {
+      _currentPosition = position;
+    });
+  }
+
+  // Future<void> scanWifiNetworks() async {
+  //   final wifiNetworks = await WifiFlutter.wifiNetworks;
+  //   setState(() {
+  //     _wifiNetworks = wifiNetworks;
+  //   });
+  // }
+  Future<void> scanWifiNetworks() async {
+    final wifiNetworks = await WifiFlutter.wifiNetworks;
+    setState(() {
+      _wifiNetworks = wifiNetworks.toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('WiFi GPS Tracker'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'WiFi Status: $_wifiStatus',
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 20),
+            if (_currentPosition != null)
+              Text(
+                'Latitude: ${_currentPosition!.latitude}\n'
+                'Longitude: ${_currentPosition!.longitude}',
+                style: TextStyle(fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+            if (_currentPosition == null) CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text(
+              'Available WiFi Networks:',
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            if (_wifiNetworks.isNotEmpty)
+              Column(
+                children: _wifiNetworks
+                    .map((wifi) => ListTile(
+                          title: Text(wifi.ssid),
+                          subtitle: Text(wifi.ssid),
+                          // trailing: Text('${wifi.level} dBm'),
+                        ))
+                    .toList(),
+              ),
+            if (_wifiNetworks.isEmpty) CircularProgressIndicator(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: WifiGpsTracker(),
+  ));
+}
